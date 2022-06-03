@@ -1,0 +1,153 @@
+Theory :
+What is container ?
+What are container registries ?	
+
+
+** below is used to make sure you dont use sudo everytime for docker commands **
+
+id
+sudo usermod -aG docker student
+newgrp docker -- you can also relogin 
+
+******
+
+sudo mkdir -p /var/www/html
+sudo sh -c "echo hello form docker >> /var/www/html/index.html"
+cat /var/www/html/index.html
+
+docker run -d -p 8080:80 --name="myapache" -v /var/www/html:/var/www/html httpd
+
+docker ps 
+ss -tuna |grep 8080
+
+curl http://localhost:8080
+
+How to exit smoothly from a docker running container ?
+
+docker run -it busybox - run the container in detach mode 
+               or 
+ctrl-p , ctrl-q -- container running in attach mode
+
+demo:
+docker run -it busybox
+docker ps
+docker ps -a       -> the container is in exited state (with code 0 )
+
+docker run -it busybox
+ctrl-p, ctrl-q
+exit
+docker ps           -> the container is in running state
+
+docker exec -it myapache sh 
+ps aux
+exit
+docker ps -- the container still is in running state
+
+*****     Start containers    *********
+
+dnf install -y docker-tools - for podman
+
+Managing containers
+
+docker ps [-a] : shows running and past containers
+docker start : starts a container if the image is stared locally
+docker stop : stops a container using linux SIGTERM
+docker restart : restarts a running container
+docker kill : stops a container using linux SIGKILL
+
+
+**********  Inspecting container settings  ********
+
+docker ps - pick container id / name
+docker inspect name /id 
+docker inspect --format='{{.NetwokSettings.IPAdress}}' containername
+docker inspect --format='{{.State.Pid}}'  containername
+Alternatively , use ps aux on the host to find the container pid
+
+NOTE - --format will work in any level , use docker inspect docname first to check docker
+attributes and then use the attributes in --format in the same order
+
+ps fax |less - use this command to check the pid of the running container , it will also show 
+               the runtime.
+			   
+********* Managing Images  ***********
+
+docker images --help
+docker image (tab, tab ) - tabcompletion
+
+docker image build
+docker image history
+docker image import
+docker image inspect
+docker image load
+docker image ls
+dorker image purne
+docker image push
+docker image pull
+docker image rm
+docker image sava
+docker image tag
+
+Docker recomends to use "docker image" ls insted of "docker images"
+"docker image rm" , insted of "docker rmi"
+
+docker image inspect
+two sections are imp 
+   ENV - environment variables
+   cmd : the command will be written in jeson format
+   
+Understanding container logging:
+Note : docker do not wite to the STDOUT , by default , hence we have to use the logs 
+  for troubleshooting
+  
+docker logs containename
+docker run -d -name="mydb" mariadb
+docker ps -a - you see the container is in exited status with a code (1)
+         Hence we have to toroubleshoot
+		 
+docker log mydb
+  copy paste the log 
+  
+docker run --name -d mydb mariadb -e MYSQL_ROOT_PASSWORD=password
+still it got failed 
+
+docker log mydb
+
+sol:
+ In linux we tend to put the -e environment at the last of the code , its not going to work
+ well in docker, as docker things -e is an argument to image , where as it is an argument to
+ container
+ 
+docker run -name -d -e MYSQL_ROOT_PASSWORD=password mariadb
+
+now it still failed 
+
+docker logs mydb
+error:
+
+sol:
+ Even though the container was not created properly but still docker kept some files for the container. hecne first remove the old container first with the same name.
+ 
+dockre rm mydb
+docker run -name -d -e MYSQL_ROOT_PASSWORD=password mariadb
+
+Now the command works.
+
+NOTE:
+
+podman run -it ubuntu:latest
+cat /etc/os-release
+uname -r 
+ctrl-p, ctrl-q
+uname -r 
+
+you see the bothe kernal version is el9 - enterprise linux 9
+
+podman ps
+docker ps -- will not work
+
+sudo dnf install podman-docker
+docker ps - it works
+
+Emulate docker cli using podman.
+Podman has taken all the initiative so that migration is carried out smoothyl
