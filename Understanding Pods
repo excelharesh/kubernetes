@@ -1,0 +1,254 @@
+Kubernetis
+
+How to connect to kubernatis ?
+
+Using 
+kubectl  --> It will be used by the client
+kubeadm --> command line utility for admistartine kubernatis 
+direct AP --> It will be used by the APP/Programes to connect to kubernatis
+
+
+kubectl --help |less
+kubectl create -h |less
+
+kubectl create deployment|deploy myapp --image=nginx --replicas=3 --> will create 3 pods , 1 replicaset,1 deployment
+kubectl create deployment|deploy mywebserver --image=nginx -> will create a single pod , 1 replicaset , 1 deployment
+
+kubectl get all -- will dispaly the all application 
+
+kubectl delete <Pod_name_from_kubectl get all >
+
+Replicaset will create new replicas/pod for the Aplication.
+
+
+********* Understanding Kubernetes Architecture ***********
+
+Control nodes - ( 1 or multiple ) - container runtime ( containerd) - kubelet - (apiserver | schedulers ) -               --> c-manager(control manager ) --etcd 
+Worker nodes - ( 1 or multiple ) - container runtime  ( containerd ) - kublet
+
+client --> kublete
+
+kublet - acts as an iterfer to client as well kubernates and container runtime( containerd ) 
+
+Client will give API calls , using kubectl commands , and kubelet will forwared that to API server , based up on the API call will acts
+ 
+ Example , if you create a contaINER 	using the below commands
+  kubectl create deployment|deploy --image=nginx --replicas=3 
+  
+  The above command will deploy the application , create deployment , replicaset and pods in each node.
+  
+ The API server will talk to controllers , which then will create objects ( deployment , replicaset and pods in worker nodes )
+ 
+ Once that is being created , the etcd ( databse ) of kubernatis will store the information form kubectl , running on both controler node and worker node.
+ 
+ Scheduler are used to schedule/provide worker nodes to create objectes inside.Normally there will be more the one worker node allways.
+ 
+ ********** API RESOUCES **********
+ 
+ kubectl api-resources
+ NAME shortnames APIVERSION NAMESPECED KIND
+ 
+ deploymene deploy app/v1 true Deployment
+ replicaset rs     app/v1  true ReplicaSet
+ Pod        po      v1     true  Pod
+ 
+ 
+ COnfigmap - IT is a apiresource used to contain VaRIABLE VAUES
+ Secreats -- IT is a apiresource used to contain VaRIABLE VAUES
+ presistant volumes - to hold the volumes crated in Pod outside
+ 
+ 
+ kind - kubernatis in docker
+ DockerDextop
+ 
+ ********************    PODS  **********************
+ 
+ 
+ **************   Understanding Pods   ************** 
+ kubectl run -h |less
+ kubectl run <podname> --image nginx
+ kubectl get pods podname 
+ kubectl get pods <podname> -o yaml
+ kubecll describe pod
+    Pod attributes
+	  namespace
+	  event 
+	container attributes
+	 state
+	 imageid
+	 containerid
+	 
+***********************    
+
+
+*****************   Understanding YAML  *************
+
+Pods or any kubernetes objects can be created in 2 ways
+
+Imperativ - Using kubectl commandline - ( run )
+Declarative - using yaml file ( create , apply , replace )
+
+In a declarative way of creation , We use yaml files to crate any kubernetes objects ( pod, replicaset , deploy , service ).
+
+NOte on yaml:
+  Yaml is a data seriolization language.
+  kubernetes, Ansible both use Yaml for creation of objects.
+  Intendation is quite imp in yaml , as it provieds relationship of elements.
+  Normally in an yaml file we reprsent data in (key: value) pair , where key has : , and key and value is sparated by space.
+  Note that , yaml key and values all re case sensitive
+  A yaml can have many elements in the file.
+    string --> key: value
+	dictionary --> dicname:
+	                 key: value
+					 key: value
+	array/list --> listname:
+	                - firselement: string
+					- secondelement:
+					      key: value
+					- thirdelemetn:
+					     - first:
+						 - second:
+ You should use any editor to create yaml files , which supports yaml.
+ Atom/vi ect
+ install vi and create a ~/.vimrc file inside your home directory
+ the file shoould have the below string
+    autocmd FileType yaml setlocal ai ts=2 sw=2 et
+					     
+ apiVersion: 
+    your objects will have a apiversion , that can be V1, or app/V1.
+ kind: 
+    kind of the object ( Pod, ReplicaSet , Deployment, Service )
+    use kubectl api-resources to find the version / kind
+ metadata:
+     Contains administrative information about the object.
+ spec:
+     It is the main part of the object creation , which tells what the object should hold.
+     if it is POD, spec: should have containers
+     if it is an ReplicaSet , it should have the template:
+
+	
+ kubectl explain pod |less
+ kubectl explain pod.spec |less
+ kubectl explain --recursive pod.spec |less --> explains the yaml configuration with intendation
+ kubectl create -f <pod_configuration_file.yaml> - fail if already created
+ kubectl apply -f <pod_configuration_file.yaml> - create if not created, and apply changes to yaml if changed.
+ kubectl get pods
+ 
+ 
+ **********  Generating yaml files ****************** 
+ You can generate yaml files by using  (      --dryrun=clien -o yaml >file.yaml       ) in 
+  kubeclt run or kubectl crete commands
+ 
+ 
+ kubectl run myfirstpod --image=nginx -o yaml 
+      --> this will create the pod , and display the yaml options
+	  
+ kubectl run myfirstpod --image=nginx -o yaml --dryrun=client -o yaml >myfirstpod_config.yaml  
+      --> This will not create the pod , but it creates the yaml configuration file.
+			   
+ kubectl run -h |less
+	  --> this to show the command example 
+		kubectl run myweb --image=nginx --command <att1> att2 attb3
+			
+ kubectel run mybusybox --image=busybox -- sleep 3036 
+		--> it creats the pod , and sleeps for 1 hour
+		
+ kubectl delete mybusybox
+ 
+ kubectel run mybusybox --image=busybox -- sleep 3036 --dryrun=client -o yaml
+			--> this will create a pod in ERROR state
+ kubectl get pod mybusybox
+ 
+ EXPLANATION -- its because image properties should be specified at the end on the kubeclt command line.
+      -- sleep 3600 should be at the last , so you need to change the order
+
+ kubectel run mybusybox --image=busybox --dryrun=client -o yaml -- sleep 3036 >mybusybox.yaml
+ 
+ kubectl run mysecondpod --image=busybox -o yaml  --sleep 3600 --dryrun=client -o yaml
+		--> the pdo will be created in ERROR
+		
+ kubectl get pod mysecondpod - ERROR
+ kubectl delete mysecondpod
+ kubectl run mysecondpod --image=busybox -o yaml --dryrun=client -o yaml --sleep 3600 
+		--> This works properly
+		
+		ERROR: Error was generated because in kubectl commandline all image attributes should be kept at the last.
+		hence you should keep --sleep 3600 at the last , its a command which overrids the CMD spce in the image
+ 
+ kubectl create -f
+ kubectl apply -f
+ kubectl replace -f
+ kubectl delete 
+ 
+ 
+ NOTE -- In the kubernates exam you are allowed to open a tab , so you can can always go to kubernetes.io/docs
+     -- search for pod , get the yaml code and copy paste in the exam.
+	 
+ *******************   Understanding and Configuring Multi-Container Pods  **********
+ 
+ sidecar : -- Manincontainer genrates the data , and the sidecar containter accesses the data , so it is used for monitoring. so sidecar containers enhances the functionality of the main containers
+       logging, monitoring , syncing
+	   The main container and the sidecar container can access the same shared resources.
+	   like namespece, volumebind, 
+ Ambasedor : -- these containers will be used when you dont want to expose your main container directly to the world. such as proxy
+ Adapter : -- These containers will be used to mange traffices in a bette way 
+ 
+ 
+ lab:
+ 
+ kubectl create -f sidecar.yaml
+ kubectl exec -it <podname> -c sidecar /bin/bash
+   kubectl exec [pod] --cmd - as the above command is depricated
+   as your are inside the containdr.
+   
+   yum install curl
+   curl http://localhost/date.txt
+    
+	you can see access the file which is crated by one containte , but can be accessed by anotgher because of the 
+	volumemount.
+	
+check the screenshots for more details
+ 
+ 
+***************        Using NameSpaces *****************
+
+kubectl get ns
+kubectl get namespece  
+ -- it will give generalized view of all namespace and status , not includes the objects created in that namespece
+
+kubectl get all -A 
+  -- all namespace objects created in default , sytem , and specific namespaces ( eg - dashbourd )
+  
+kubectl create namespace <namespace_name>
+  eg --> kubectl create namespace secreat
+  
+kubectl run secreatngn --image=nginx -n secreat
+kubectl get pods
+
+kubectl get pods -n secreat
+kubectl describe ns secreat
+
+by default all the pods will be created in "default" namespace, you can check this configuration using
+
+kubectl config view
+
+In an declarative way : use the below in metadata specification , which will create not only the objects but also the 
+
+metadata:
+   name: pod_name
+   namespace: secreat
+
+kubectl explain pod.metadata
+    -- to check the spellings for your metadata
+
+
+kubectl create namespace production --dryrun=client -o yaml >prod_ngin.yaml
+
+kubectl run nginx-pod --image=nginx -n production --dryrun=client -o yaml >>prod_ngin.yaml
+
+--- this can be used to differnciate pod and container configuration
+---
+
+kubectl create -f prod_nginx.yaml
+
+kubectl get all -n production
